@@ -32,6 +32,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ui = [
+    "gradio>=4.44",         # local trace viewer (jetai ui)
+]
 dev = [
     "pytest>=8.2",
     "pytest-cov>=5.0",

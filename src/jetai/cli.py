@@ -288,6 +288,26 @@ def trace(
     console.print(table)
 
 
+@app.command()
+def ui(
+    port: int = typer.Option(7860, "--port", help="Port to serve the viewer on."),
+    share: bool = typer.Option(False, "--share", help="Expose a public Gradio link."),
+) -> None:
+    """Launch the local Gradio viewer for browsing run traces."""
+    try:
+        from jetai.trace_ui import launch
+    except ModuleNotFoundError:
+        console.print(
+            "[red]Gradio is not installed.[/red] Install the viewer extra: "
+            "[cyan]uv pip install -e '.[ui]'[/cyan]"
+        )
+        raise typer.Exit(1) from None
+
+    runs_dir = _settings().runs_dir
+    console.print(f"Serving traces from [cyan]{runs_dir}/[/cyan] on port {port}")
+    launch(runs_dir, server_port=port, share=share)
+
+
 @app.command("eval")
 def eval_run(
     run: Path | None = _RUN_OPTION,
