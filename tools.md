@@ -3,8 +3,20 @@
 ## Setup
 
 ```bash
-uv sync
+uv sync --extra dev
 source .venv/bin/activate
+pre-commit install
+```
+
+## Pre-commit hooks
+
+`.pre-commit-config.yaml` mirrors the checks in `.github/workflows/ci.yml`
+(ruff check, ruff format --check, mypy, pytest) so they run locally before
+each commit, via `uv run` so the exact pinned tool versions are used. Run
+them on demand with:
+
+```bash
+pre-commit run --all-files
 ```
 
 ## `jetai inventory [PATH]`
