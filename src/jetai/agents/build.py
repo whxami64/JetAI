@@ -229,14 +229,29 @@ CANONICAL_SCHEMA: dict[str, tuple[CanonicalColumn, ...]] = {
 # cannot see (e.g. approval ids landing in the wrong journal column).
 LINK_CHECKS: tuple[tuple[str, str, str, str, str], ...] = (
     ("approval_log->journal", "approval_log", "entry_id", "journal", "entry_id"),
-    ("goods_receipts->vendor_postings", "goods_receipts", "invoice_number",
-     "vendor_postings", "document_number"),
-    ("goods_issues->sales_invoices", "goods_issues", "invoice_number",
-     "sales_invoices", "invoice_number"),
+    (
+        "goods_receipts->vendor_postings",
+        "goods_receipts",
+        "invoice_number",
+        "vendor_postings",
+        "document_number",
+    ),
+    (
+        "goods_issues->sales_invoices",
+        "goods_issues",
+        "invoice_number",
+        "sales_invoices",
+        "invoice_number",
+    ),
     ("three_way_match->dim_vendor", "three_way_match", "vendor_id", "dim_vendor", "vendor_id"),
     ("vendor_postings->dim_vendor", "vendor_postings", "vendor_id", "dim_vendor", "vendor_id"),
-    ("customer_postings->dim_customer", "customer_postings", "customer_id",
-     "dim_customer", "customer_id"),
+    (
+        "customer_postings->dim_customer",
+        "customer_postings",
+        "customer_id",
+        "dim_customer",
+        "customer_id",
+    ),
 )
 
 
