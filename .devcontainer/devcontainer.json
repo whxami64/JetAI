@@ -8,10 +8,10 @@
   },
   "postCreateCommand": "uv sync --extra dev",
   "containerEnv": {
-    "UV_PROJECT_ENVIRONMENT": "/workspaces/.venv"
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
   },
   "remoteEnv": {
-    "PATH": "/workspaces/.venv/bin:${containerEnv:PATH}"
+    "PATH": "/home/vscode/.venv/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
@@ -22,7 +22,7 @@
         "tamasfe.even-better-toml"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/workspaces/.venv/bin/python",
+        "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",
         "python.testing.pytestEnabled": true,
         "python.testing.pytestArgs": ["tests"],
         "[python]": {
