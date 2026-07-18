@@ -72,6 +72,12 @@ def _mentions(finding_entities: list[str], truth_entity: str) -> bool:
     return any(needle in _normalize(entity) for entity in finding_entities)
 
 
+def _check_allowed(finding_check: str, allowed: list[str]) -> bool:
+    """The verifier may merge findings across checks ("four_eyes / three_way_match"),
+    so an expected check counts when it appears anywhere in the finding's check name."""
+    return any(check in finding_check for check in allowed)
+
+
 def load_ground_truth(path: Path = DEFAULT_GROUND_TRUTH) -> GroundTruth:
     return GroundTruth.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
@@ -85,7 +91,7 @@ def score_report(report: FinalReport, truth: GroundTruth) -> Scorecard:
     for expected in truth.expected:
         result = ExpectedResult(id=expected.id, title=expected.title, core=expected.core)
         for index, finding in enumerate(confirmed):
-            if finding.check not in expected.check_any:
+            if not _check_allowed(finding.check, expected.check_any):
                 continue
             hits = [e for e in expected.must_mention_any if _mentions(finding.primary_entities, e)]
             if hits:
