@@ -308,6 +308,19 @@ def trace(
     console.print(table)
 
 
+@app.command("trace-ui")
+def trace_ui(
+    port: int = typer.Option(7861, "--port", help="Port to serve the viewer on."),
+    share: bool = typer.Option(False, "--share", help="Expose a public Gradio link."),
+) -> None:
+    """Launch the local Gradio viewer for browsing run traces."""
+    from jetai.trace_ui import launch
+
+    runs_dir = _settings().runs_dir
+    console.print(f"Serving traces from [cyan]{runs_dir}/[/cyan] on port {port}")
+    launch(runs_dir, server_port=port, share=share)
+
+
 @app.command("eval")
 def eval_run(
     run: Path | None = _RUN_OPTION,

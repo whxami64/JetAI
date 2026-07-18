@@ -9,7 +9,12 @@ from uuid import uuid4
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.outputs import ChatGeneration, LLMResult
 
-from jetai.agents.tracing import JsonlTracer, summarize_traces
+from jetai.agents.tracing import (
+    JsonlTracer,
+    build_trace_tree,
+    load_events,
+    summarize_traces,
+)
 
 
 def _llm_result() -> LLMResult:
@@ -60,3 +65,59 @@ def test_summarize_traces_rolls_up_per_agent(tmp_path: Path) -> None:
 
 def test_summarize_missing_file_is_empty(tmp_path: Path) -> None:
     assert summarize_traces(tmp_path / "nope.jsonl") == []
+
+
+def test_tracer_records_run_ids(tmp_path: Path) -> None:
+    path = tmp_path / "traces.jsonl"
+    tracer = JsonlTracer(path, agent="build")
+    run_id, parent = uuid4(), uuid4()
+
+    tracer.on_tool_start({"name": "execute_sql"}, "SELECT 1", run_id=run_id, parent_run_id=parent)
+
+    line = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
+    assert line["run_id"] == str(run_id)
+    assert line["parent_run_id"] == str(parent)
+
+
+def test_build_trace_tree_nests_by_parent(tmp_path: Path) -> None:
+    path = tmp_path / "traces.jsonl"
+    tracer = JsonlTracer(path, agent="build")
+    chain, tool = uuid4(), uuid4()
+
+    # An LLM call under the chain, then a tool call under the same chain.
+    tracer.on_chat_model_start({}, [[HumanMessage("brief")]], run_id=uuid4(), parent_run_id=chain)
+    tracer.on_tool_start({"name": "execute_sql"}, "SELECT 1", run_id=tool, parent_run_id=chain)
+    tracer.on_tool_end("1", run_id=tool, parent_run_id=chain)
+
+    roots = build_trace_tree(load_events(path))
+    # The chain run itself was never traced, so its children surface as roots.
+    assert len(roots) == 2
+    tool_span = next(s for s in roots if s["kind"] == "tool")
+    assert tool_span["label"] == "execute_sql"
+    # tool_start + tool_end fold into one span.
+    assert len(tool_span["events"]) == 2
+
+
+def test_build_trace_tree_pairs_child_under_traced_parent() -> None:
+    parent, child = "p", "c"
+    events = [
+        {
+            "agent": "a",
+            "event": "tool_start",
+            "tool": "t",
+            "run_id": parent,
+            "parent_run_id": None,
+            "ts": "2026-01-01T00:00:00.000+00:00",
+        },
+        {
+            "agent": "a",
+            "event": "llm_start",
+            "run_id": child,
+            "parent_run_id": parent,
+            "ts": "2026-01-01T00:00:01.000+00:00",
+        },
+    ]
+    roots = build_trace_tree(events)
+    assert len(roots) == 1
+    assert roots[0]["run_id"] == parent
+    assert [c["run_id"] for c in roots[0]["children"]] == [child]
