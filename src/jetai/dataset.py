@@ -22,6 +22,10 @@ DOCUMENT_SUFFIXES = frozenset({".docx", ".pdf"})
 IGNORED_SUFFIXES = frozenset({".dtd", ".xml"})
 IGNORED_NAMES = frozenset({".DS_Store"})
 
+# Archived originals live here once preprocessing has converted them; excluded
+# from inventories so a second preprocessing run doesn't reprocess them.
+STALE_DIRNAME = "stale"
+
 
 @dataclass(frozen=True)
 class SourceInventory:
@@ -83,8 +87,11 @@ def find_dataset_root(start: Path) -> Path:
 
 def _walk_files(root: Path) -> Iterator[Path]:
     for path in sorted(root.rglob("*")):
-        if path.is_file() and not _is_ignored(path):
-            yield path
+        if not path.is_file() or _is_ignored(path):
+            continue
+        if STALE_DIRNAME in path.relative_to(root).parts[:-1]:
+            continue
+        yield path
 
 
 def build_inventory(root: Path) -> SourceInventory:
