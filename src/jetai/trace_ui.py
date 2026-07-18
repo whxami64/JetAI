@@ -2,7 +2,7 @@
 
 No external service: the app reads the on-disk trace files under ``runs/`` and
 renders a per-agent rollup plus a nested call tree (LLM/tool spans paired by
-``run_id`` and nested by ``parent_run_id``). Launched via ``jetai ui``.
+``run_id`` and nested by ``parent_run_id``). Launched via ``jetai trace-ui``.
 """
 
 from __future__ import annotations
@@ -132,7 +132,7 @@ def _summary_rows(path: Path) -> list[list[Any]]:
 
 def build_app(runs_dir: Path) -> Any:
     """Build (but do not launch) the Gradio Blocks app for ``runs_dir``."""
-    import gradio as gr  # type: ignore[import-not-found]  # optional `ui` extra
+    import gradio as gr
 
     def load(run: str | None) -> tuple[list[list[Any]], str]:
         if not run:

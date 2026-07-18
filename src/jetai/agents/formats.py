@@ -129,9 +129,7 @@ def _classify_number_column(name: str, labels: Counter[str], matched: int) -> Co
     english = labels.get("english", 0)
     grouped = labels.get("ambiguous_dot", 0) + labels.get("ambiguous_comma", 0)
     decimals = german + english
-    mixed = bool(
-        decimals and german / matched > MIX_SHARE and english / matched > MIX_SHARE
-    )
+    mixed = bool(decimals and german / matched > MIX_SHARE and english / matched > MIX_SHARE)
 
     if mixed:
         style: str | None = "german" if german >= english else "english"

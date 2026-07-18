@@ -21,6 +21,10 @@ jetai check <name>|--all [--run DIR]  # three_way_match | cutoff | account_class
 jetai verify [--run DIR]      # verifier agent -> report.json + report.md
 jetai eval [--run DIR] [--truth FILE]  # score report vs eval/ground_truth.json
 jetai trace [--run DIR] [--full]       # per-agent LLM/tool/token summary of traces.jsonl
+jetai ui [--host H] [--port P] [--share]  # Gradio web UI: upload a dataset ZIP, watch the
+                                          # audit live, browse the report (source-file links,
+                                          # evidence SQL replay), then chat with a Q&A agent
+                                          # over the run's traces and artifacts
 ```
 
 `--run` defaults to the latest directory under `runs/`; stages read the earlier

@@ -256,6 +256,26 @@ def audit(path: Path = _PATH_ARGUMENT) -> None:
 
 
 @app.command()
+def ui(
+    host: str = typer.Option("127.0.0.1", "--host", help="Interface to bind."),
+    port: int = typer.Option(7860, "--port", help="Port to serve on."),
+    share: bool = typer.Option(False, "--share", help="Create a public Gradio link."),
+) -> None:
+    """Launch the Gradio web UI (upload, live audit, report, Q&A)."""
+    from jetai.web.app import ALLOWED_DIRS, build_app
+
+    for directory in ALLOWED_DIRS:
+        directory.mkdir(parents=True, exist_ok=True)
+    console.print(f"Serving JetAI UI on http://{host}:{port}")
+    build_app().queue(default_concurrency_limit=4).launch(
+        server_name=host,
+        server_port=port,
+        share=share,
+        allowed_paths=[str(d.resolve()) for d in ALLOWED_DIRS],
+    )
+
+
+@app.command()
 def trace(
     run: Path | None = _RUN_OPTION,
     full: bool = typer.Option(False, "--full", help="Dump raw trace lines."),
@@ -288,20 +308,13 @@ def trace(
     console.print(table)
 
 
-@app.command()
-def ui(
-    port: int = typer.Option(7860, "--port", help="Port to serve the viewer on."),
+@app.command("trace-ui")
+def trace_ui(
+    port: int = typer.Option(7861, "--port", help="Port to serve the viewer on."),
     share: bool = typer.Option(False, "--share", help="Expose a public Gradio link."),
 ) -> None:
     """Launch the local Gradio viewer for browsing run traces."""
-    try:
-        from jetai.trace_ui import launch
-    except ModuleNotFoundError:
-        console.print(
-            "[red]Gradio is not installed.[/red] Install the viewer extra: "
-            "[cyan]uv pip install -e '.[ui]'[/cyan]"
-        )
-        raise typer.Exit(1) from None
+    from jetai.trace_ui import launch
 
     runs_dir = _settings().runs_dir
     console.print(f"Serving traces from [cyan]{runs_dir}/[/cyan] on port {port}")
