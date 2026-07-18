@@ -47,6 +47,7 @@ def views_for_finding(finding: Finding) -> set[str]:
     spec = CHECK_SPECS.get(finding.check)
     if spec is not None:
         views.update(spec.required_views)
+        views.update(spec.optional_views)
     sql = " ".join(finding.evidence_sql)
     for view in CANONICAL_SCHEMA:
         if re.search(rf"\b{re.escape(view)}\b", sql):

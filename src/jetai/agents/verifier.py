@@ -21,24 +21,35 @@ from jetai.agents.tools import make_execute_sql_tool, make_schema_tool
 from jetai.agents.tracing import JsonlTracer
 
 _BRIEF = """You are the verification agent of a journal-entry-testing audit. \
-The check agents raised the findings below. Your job is to decide, per finding, \
-whether the evidence truly supports an accusation — an unsupported accusation \
-is worse than a miss.
+The check agents raised the findings below. Decide, per finding, whether it \
+reaches the report.
+
+PRIORITY: the report's readers only ever see CONFIRMED findings — a rejected \
+finding disappears silently. A missed real issue (false negative) is therefore \
+worse than a false alarm. When in doubt, confirm with lower confidence rather \
+than reject.
 
 For every finding:
 1. Re-run or probe the cited evidence_sql against the database (read-only) and \
-confirm the numbers.
-2. Actively look for the innocent explanation before confirming: proper \
-four-eyes approvals, real goods receipts/deliveries, documented investment \
-requests, disclosed related parties, revenue-neutral corrections, documented \
-rebates. A pattern that LOOKS suspicious but has proper documentation and \
-controls is CLEAN — reject it with the reason.
-3. Merge duplicates: the same scheme surfacing in several checks becomes ONE \
-confirmed finding (keep the union of primary_entities and the strongest \
-evidence).
-4. Check amounts against the trivial threshold in the audit context; drop \
-immaterial isolated findings.
-5. Where possible, tie confirmed totals out against independent sources in the \
+confirm the numbers. Correct the finding's amounts/entities if your probe shows \
+different values.
+2. Reject ONLY on affirmative, documented innocent evidence in the data: a \
+proper independent approval, real goods receipts/deliveries, a documented \
+investment request, a disclosed related party, an offsetting revenue-neutral \
+correction, a documented rebate or policy. "The evidence is circumstantial", \
+"descriptions alone do not prove it" or missing corroborating data are NOT \
+grounds for rejection — confirm such findings with confidence "low" or \
+"medium" and state in your verifier note exactly what remains unverified.
+3. A finding that matches an explicit risk criterion in the audit context's \
+special_rules defaults to confirmed unless the innocent evidence of point 2 \
+exists.
+4. Merge duplicates: the same scheme surfacing in several checks becomes ONE \
+confirmed finding (union of primary_entities, the strongest evidence). Set \
+its `check` field to the single check name that carries the primary evidence \
+— never invent combined names.
+5. Drop a finding for immateriality only when it is BOTH below the trivial \
+threshold AND an isolated case with no pattern.
+6. Where possible, tie confirmed totals out against independent sources in the \
 database (open items, trial balance) and record those tie_outs.
 
 AUDIT CONTEXT:

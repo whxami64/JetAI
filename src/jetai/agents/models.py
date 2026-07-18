@@ -7,6 +7,8 @@ data instead of prose.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from pydantic import BaseModel, Field
 
 
@@ -109,9 +111,15 @@ class BuildReport(BaseModel):
     canonical_views_present: list[str] = Field(default_factory=list)
     canonical_views_missing: list[str] = Field(default_factory=list)
     view_checks: list[ViewCheck] = Field(default_factory=list)
+    link_coverage: dict[str, float] = Field(
+        default_factory=dict,
+        description="cross-view key link -> fraction of left-side keys found on the right",
+    )
     mapping: dict[str, str] = Field(default_factory=dict)
     unmapped: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+    LOW_LINK_COVERAGE: ClassVar[float] = 0.2
 
     @property
     def defects(self) -> list[str]:
@@ -129,6 +137,11 @@ class BuildReport(BaseModel):
                 problems.append(f"{check.view}.{column}: {nulls} NULLs in required column")
             for defect in check.date_range_defects:
                 problems.append(f"{check.view}: {defect}")
+        for link, coverage in self.link_coverage.items():
+            if coverage < self.LOW_LINK_COVERAGE:
+                problems.append(
+                    f"link {link}: only {coverage:.0%} of keys match — likely a column mis-mapping"
+                )
         return problems
 
 

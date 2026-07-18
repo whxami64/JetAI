@@ -110,7 +110,7 @@ def build_supervisor_tools(settings: AgentSettings, root: Path, run_dir: Path) -
     @tool
     def run_check(check_name: str, refinement_note: str = "") -> str:
         """Run one check agent (three_way_match, cutoff, account_classification,
-        split_payments, four_eyes). Writes findings/<check>.json."""
+        split_payments, four_eyes, journal_anomalies). Writes findings/<check>.json."""
         spec = CHECK_SPECS.get(check_name)
         if spec is None:
             return _summary(
@@ -126,7 +126,8 @@ def build_supervisor_tools(settings: AgentSettings, root: Path, run_dir: Path) -
             context = load_audit_context(run_dir)
             if refinement_note:
                 context.special_rules.append(f"REFINEMENT NOTE: {refinement_note}")
-            report = run_check_agent(settings, spec, context, run_dir)
+            profile = load_profile(run_dir)
+            report = run_check_agent(settings, spec, context, run_dir, root, profile)
         except Exception as error:  # noqa: BLE001
             return _summary({"status": "error", "error": str(error)})
         return _summary(

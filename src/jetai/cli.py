@@ -182,6 +182,7 @@ def check(
     """Run one check agent (or all of them) against the built database."""
     from jetai.agents.audit_context import load_audit_context
     from jetai.agents.checks import CHECK_SPECS, run_check_agent
+    from jetai.agents.profiling import load_profile
 
     settings = _settings()
     run_dir = _resolve_run(run)
@@ -190,8 +191,12 @@ def check(
         console.print(f"[red]Unknown check[/red] {name!r}; choose from {sorted(CHECK_SPECS)}")
         raise typer.Exit(1)
     audit_context = load_audit_context(run_dir)
+    profile = load_profile(run_dir)
+    dataset_root = Path(profile.root)
     for check_name in names:
-        report = run_check_agent(settings, CHECK_SPECS[check_name], audit_context, run_dir)
+        report = run_check_agent(
+            settings, CHECK_SPECS[check_name], audit_context, run_dir, dataset_root, profile
+        )
         console.print(
             f"[cyan]{check_name}[/cyan]: {len(report.findings)} findings "
             f"-> findings/{check_name}.json"
