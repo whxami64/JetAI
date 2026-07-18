@@ -7,6 +7,7 @@ attributable events to ``<run>/traces.jsonl``. ``jetai trace`` summarizes.
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import LLMResult
 
-_EXCERPT = 400
+_EXCERPT = int(os.environ.get("JETAI_TRACE_EXCERPT", "2000"))
 
 
 def _excerpt(value: object, limit: int = _EXCERPT) -> str:

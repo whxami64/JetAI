@@ -256,6 +256,26 @@ def audit(path: Path = _PATH_ARGUMENT) -> None:
 
 
 @app.command()
+def ui(
+    host: str = typer.Option("127.0.0.1", "--host", help="Interface to bind."),
+    port: int = typer.Option(7860, "--port", help="Port to serve on."),
+    share: bool = typer.Option(False, "--share", help="Create a public Gradio link."),
+) -> None:
+    """Launch the Gradio web UI (upload, live audit, report, Q&A)."""
+    from jetai.web.app import ALLOWED_DIRS, build_app
+
+    for directory in ALLOWED_DIRS:
+        directory.mkdir(parents=True, exist_ok=True)
+    console.print(f"Serving JetAI UI on http://{host}:{port}")
+    build_app().queue(default_concurrency_limit=4).launch(
+        server_name=host,
+        server_port=port,
+        share=share,
+        allowed_paths=[str(d.resolve()) for d in ALLOWED_DIRS],
+    )
+
+
+@app.command()
 def trace(
     run: Path | None = _RUN_OPTION,
     full: bool = typer.Option(False, "--full", help="Dump raw trace lines."),
