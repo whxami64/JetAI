@@ -101,7 +101,6 @@ def run_verifier_agent(
             tools=[make_execute_sql_tool(conn), make_schema_tool(conn)],
             response_format=FinalReport,
             tracer=tracer,
-            recursion_limit=50,
         )
     (run_dir / "report.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
     (run_dir / "report.md").write_text(render_report_md(report), encoding="utf-8")

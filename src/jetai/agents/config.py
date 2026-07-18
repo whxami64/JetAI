@@ -16,6 +16,8 @@ class AgentSettings(BaseSettings):
     openai_api_key: str
     openai_model: str = "gpt-5"
     runs_dir: Path = Path("runs")
+    # Max agent steps (tool calls + model turns) per specialist invocation.
+    recursion_limit: int = 40
 
 
 def create_run_dir(runs_dir: Path) -> Path:

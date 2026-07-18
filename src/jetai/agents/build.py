@@ -317,42 +317,57 @@ def verify_build(db_path: Path, context: AuditContext) -> list[ViewCheck]:
                 checks.append(ViewCheck(view=view, present=False))
                 continue
             check = ViewCheck(view=view, present=True)
-            check.row_count = conn.execute(f'SELECT count(*) FROM "{view}"').fetchone()[0]  # type: ignore[index]
-            actual = {
-                row[0]
-                for row in conn.execute(
-                    "SELECT column_name FROM information_schema.columns WHERE table_name = ?",
-                    [view],
-                ).fetchall()
-            }
-            for column in columns:
-                if column.name not in actual:
-                    if column.required:
-                        check.null_defects[column.name] = check.row_count
-                    continue
-                if column.required and check.row_count:
-                    nulls = conn.execute(
-                        f'SELECT count(*) FROM "{view}" WHERE "{column.name}" IS NULL'
-                    ).fetchone()[0]  # type: ignore[index]
-                    if nulls:
-                        check.null_defects[column.name] = nulls
-                if column.kind == "date" and window and check.row_count:
-                    low, high = conn.execute(
-                        f'SELECT min("{column.name}"), max("{column.name}") '
-                        f'FROM "{view}" WHERE "{column.name}" IS NOT NULL'
-                    ).fetchone() or (None, None)
-                    for bound in (low, high):
-                        if bound is None:
-                            continue
-                        value = bound if isinstance(bound, date) else None
-                        if value is not None and not (window[0] <= value <= window[1]):
-                            check.date_range_defects.append(
-                                f"{column.name} value {value} outside {window[0]}..{window[1]}"
-                                " (possible day/month swap)"
-                            )
-                            break
+            try:
+                _check_view(conn, view, columns, window, check)
+            except duckdb.Error as error:
+                # Views over read_csv are lazy: a bad source path or cast only
+                # surfaces on query. Record it; the supervisor decides on a rebuild.
+                check.error = str(error)
             checks.append(check)
     return checks
+
+
+def _check_view(
+    conn: duckdb.DuckDBPyConnection,
+    view: str,
+    columns: tuple[CanonicalColumn, ...],
+    window: tuple[date, date] | None,
+    check: ViewCheck,
+) -> None:
+    check.row_count = conn.execute(f'SELECT count(*) FROM "{view}"').fetchone()[0]  # type: ignore[index]
+    actual = {
+        row[0]
+        for row in conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = ?",
+            [view],
+        ).fetchall()
+    }
+    for column in columns:
+        if column.name not in actual:
+            if column.required:
+                check.null_defects[column.name] = check.row_count
+            continue
+        if column.required and check.row_count:
+            nulls = conn.execute(
+                f'SELECT count(*) FROM "{view}" WHERE "{column.name}" IS NULL'
+            ).fetchone()[0]  # type: ignore[index]
+            if nulls:
+                check.null_defects[column.name] = nulls
+        if column.kind == "date" and window and check.row_count:
+            low, high = conn.execute(
+                f'SELECT min("{column.name}"), max("{column.name}") '
+                f'FROM "{view}" WHERE "{column.name}" IS NOT NULL'
+            ).fetchone() or (None, None)
+            for bound in (low, high):
+                if bound is None:
+                    continue
+                value = bound if isinstance(bound, date) else None
+                if value is not None and not (window[0] <= value <= window[1]):
+                    check.date_range_defects.append(
+                        f"{column.name} value {value} outside {window[0]}..{window[1]}"
+                        " (possible day/month swap)"
+                    )
+                    break
 
 
 def run_build_agent(

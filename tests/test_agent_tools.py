@@ -26,6 +26,22 @@ def test_execute_sql_caps_rows() -> None:
     assert len(output.splitlines()) == 12  # header + 10 rows + cap notice
 
 
+def test_execute_sql_is_safe_under_parallel_tool_calls() -> None:
+    """langgraph runs parallel tool calls on threads sharing one connection."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    conn = duckdb.connect(":memory:")
+    conn.execute("CREATE TABLE t AS SELECT range AS n FROM range(500)")
+    tool = make_execute_sql_tool(conn, max_rows=10)
+
+    def query(_: int) -> str:
+        return tool.invoke({"query": "SELECT n FROM t ORDER BY n"})
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        outputs = list(pool.map(query, range(80)))
+    assert all(out.splitlines()[1] == "0" for out in outputs)
+
+
 def test_execute_sql_returns_errors_as_text() -> None:
     tool = make_execute_sql_tool(duckdb.connect(":memory:"))
     output = tool.invoke({"query": "SELECT * FROM missing_table"})

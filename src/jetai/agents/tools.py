@@ -7,6 +7,7 @@ head-capped file reads — agents must aggregate and inspect, never dump.
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 import duckdb
@@ -16,6 +17,17 @@ from jetai.agents.models import DatasetProfile
 
 MAX_SQL_ROWS = 50
 MAX_HEAD_LINES = 40
+
+# Agents may issue parallel tool calls, which langgraph executes on separate
+# threads. A DuckDB connection's result state (description, pending fetch) is
+# not thread-safe, so all access to one connection is serialized.
+_CONN_LOCKS: dict[int, threading.Lock] = {}
+_CONN_LOCKS_GUARD = threading.Lock()
+
+
+def _lock_for(conn: duckdb.DuckDBPyConnection) -> threading.Lock:
+    with _CONN_LOCKS_GUARD:
+        return _CONN_LOCKS.setdefault(id(conn), threading.Lock())
 
 
 def _render_rows(columns: list[str], rows: list[tuple[object, ...]]) -> str:
@@ -37,11 +49,12 @@ def make_execute_sql_tool(
         COUNT, SUM, LIMIT) instead of dumping tables.
         """
         try:
-            cursor = conn.execute(query)
-            if cursor.description is None:
-                return "OK (statement executed, no result set)"
-            columns = [d[0] for d in cursor.description]
-            rows = cursor.fetchmany(max_rows + 1)
+            with _lock_for(conn):
+                cursor = conn.execute(query)
+                if cursor.description is None:
+                    return "OK (statement executed, no result set)"
+                columns = [d[0] for d in cursor.description]
+                rows = cursor.fetchmany(max_rows + 1)
         except duckdb.Error as error:
             return f"SQL error: {error}"
         truncated = len(rows) > max_rows
@@ -61,30 +74,31 @@ def make_schema_tool(conn: duckdb.DuckDBPyConnection) -> BaseTool:
         """List tables/views with their columns. Pass a table name to also
         see its column types and 3 sample rows. Always inspect before querying."""
         try:
-            if not table_name:
-                rows = conn.execute(
-                    "SELECT table_name, table_type FROM information_schema.tables "
-                    "ORDER BY table_name"
-                ).fetchall()
-                lines = []
-                for name, kind in rows:
-                    columns = conn.execute(
-                        "SELECT column_name FROM information_schema.columns "
-                        "WHERE table_name = ? ORDER BY ordinal_position",
-                        [name],
+            with _lock_for(conn):
+                if not table_name:
+                    rows = conn.execute(
+                        "SELECT table_name, table_type FROM information_schema.tables "
+                        "ORDER BY table_name"
                     ).fetchall()
-                    lines.append(f"{name} ({kind}): {', '.join(c[0] for c in columns)}")
-                return "\n".join(lines) or "(no tables yet)"
-            columns = conn.execute(
-                "SELECT column_name, data_type FROM information_schema.columns "
-                "WHERE table_name = ? ORDER BY ordinal_position",
-                [table_name],
-            ).fetchall()
-            if not columns:
-                return f"No table or view named {table_name!r}."
-            cursor = conn.execute(f'SELECT * FROM "{table_name}" LIMIT 3')
-            names = [d[0] for d in cursor.description or []]
-            sample = _render_rows(names, cursor.fetchall())
+                    lines = []
+                    for name, kind in rows:
+                        columns = conn.execute(
+                            "SELECT column_name FROM information_schema.columns "
+                            "WHERE table_name = ? ORDER BY ordinal_position",
+                            [name],
+                        ).fetchall()
+                        lines.append(f"{name} ({kind}): {', '.join(c[0] for c in columns)}")
+                    return "\n".join(lines) or "(no tables yet)"
+                columns = conn.execute(
+                    "SELECT column_name, data_type FROM information_schema.columns "
+                    "WHERE table_name = ? ORDER BY ordinal_position",
+                    [table_name],
+                ).fetchall()
+                if not columns:
+                    return f"No table or view named {table_name!r}."
+                cursor = conn.execute(f'SELECT * FROM "{table_name}" LIMIT 3')
+                names = [d[0] for d in cursor.description or []]
+                sample = _render_rows(names, cursor.fetchall())
             types = ", ".join(f"{c[0]} {c[1]}" for c in columns)
             return f"{table_name}: {types}\nsample:\n{sample}"
         except duckdb.Error as error:

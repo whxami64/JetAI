@@ -57,9 +57,12 @@ def settings() -> AgentSettings:
 
 @pytest.fixture(scope="module")
 def dataset_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    target = tmp_path_factory.mktemp("dataset")
-    shutil.copytree(_REPO / "data", target / "data")
-    root = find_dataset_root(target / "data")
+    # Copy only the practice dataset: data/ may hold other datasets too, and a
+    # combined root would make the agents profile and build across all of them.
+    source = _REPO / "data" / "Uebungsdaten Muster Verpackungen"
+    target = tmp_path_factory.mktemp("dataset") / "data"
+    shutil.copytree(source, target / source.name)
+    root = find_dataset_root(target)
     preprocess_dataset(root)
     return root
 

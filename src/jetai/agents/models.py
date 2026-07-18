@@ -92,6 +92,7 @@ class ViewCheck(BaseModel):
     view: str
     present: bool
     row_count: int = 0
+    error: str | None = None  # the view exists but cannot be queried
     null_defects: dict[str, int] = Field(
         default_factory=dict,
         description="required column -> NULL count (nonzero means casts/mapping lost values)",
@@ -118,6 +119,9 @@ class BuildReport(BaseModel):
         problems: list[str] = []
         for check in self.view_checks:
             if not check.present:
+                continue
+            if check.error:
+                problems.append(f"{check.view}: unqueryable ({check.error})")
                 continue
             if check.row_count == 0:
                 problems.append(f"{check.view}: present but empty")

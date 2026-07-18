@@ -14,12 +14,18 @@ import xlwt
 from jetai.dataset import build_inventory
 from jetai.preprocess import preprocess_dataset
 
-_SAMPLE_PDF = (
-    Path(__file__).parent.parent
-    / "data"
-    / "Uebungsdaten Muster Verpackungen"
-    / "Begleitdokumente"
-    / "JA-Entwurf_2025_Auszug_Bilanz_GuV.pdf"
+_DATASET = Path(__file__).parent.parent / "data" / "Uebungsdaten Muster Verpackungen"
+# After a real preprocessing run the original pdf lives under stale/.
+_SAMPLE_PDF = next(
+    (
+        candidate
+        for candidate in (
+            _DATASET / "Begleitdokumente" / "JA-Entwurf_2025_Auszug_Bilanz_GuV.pdf",
+            _DATASET / "stale" / "Begleitdokumente" / "JA-Entwurf_2025_Auszug_Bilanz_GuV.pdf",
+        )
+        if candidate.exists()
+    ),
+    _DATASET / "Begleitdokumente" / "JA-Entwurf_2025_Auszug_Bilanz_GuV.pdf",
 )
 
 

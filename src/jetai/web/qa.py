@@ -22,7 +22,7 @@ from langchain_core.tools import BaseTool, tool
 from jetai.agents.build import DB_FILENAME
 from jetai.agents.checks import CHECK_SPECS
 from jetai.agents.config import AgentSettings
-from jetai.agents.runner import DEFAULT_RECURSION_LIMIT, chat_model
+from jetai.agents.runner import chat_model
 from jetai.agents.tools import make_execute_sql_tool, make_schema_tool
 from jetai.agents.tracing import summarize_traces
 from jetai.web.progress import TRACES_FILENAME
@@ -171,7 +171,7 @@ def answer(
     """
     # Typed as Any: langgraph's input state is a TypedDict mypy cannot infer here.
     state: Any = {"messages": [*history, HumanMessage(question)]}
-    config: RunnableConfig = {"recursion_limit": DEFAULT_RECURSION_LIMIT, "run_name": "qa"}
+    config: RunnableConfig = {"recursion_limit": settings.recursion_limit, "run_name": "qa"}
     final = ""
     with duckdb.connect(str(run_dir / DB_FILENAME), read_only=True) as conn:
         agent = create_agent(
