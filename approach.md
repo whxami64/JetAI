@@ -5,7 +5,7 @@ https://techeurope.notion.site/berlin-summer-lock-in
 ## Preprocessing
 
 - xlsx2csv und alte löschen
-- .doxc und .pdf zu markdown und alte löschen
+- .docx und .pdf zu markdown und alte löschen
 - Übersicht aller Dokumente
 - Sachkonten zusammenführen
 - Trennzeichen (Komma / Punkt vereinheitlichen)
