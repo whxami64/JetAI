@@ -2,7 +2,7 @@
 name = "JetAI"
 version = "0.1.0"
 description = "AI agent for journal entry testing (JET) on GDPdU accounting exports"
-readme = "approach.md"
+readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }
 authors = [{ name = "Cortea" }]
