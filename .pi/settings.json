@@ -1,0 +1,17 @@
+{
+  "sessionDir": ".runtime/sessions/pi-cli",
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 16384,
+    "keepRecentTokens": 20000
+  },
+  "retry": {
+    "enabled": true,
+    "maxRetries": 1
+  },
+  "defaultProjectTrust": "ask",
+  "packages": [],
+  "extensions": [],
+  "skills": [],
+  "prompts": []
+}

@@ -13,9 +13,18 @@ dist/
 .ruff_cache/
 .coverage
 htmlcov/
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
 
 # Secrets / local config
 .env
+.runtime/*
+!.runtime/.gitkeep
+!.runtime/sessions/
+!.runtime/sessions/.gitkeep
+!.runtime/traces/
+!.runtime/traces/.gitkeep
 
 # OS / editor
 .DS_Store

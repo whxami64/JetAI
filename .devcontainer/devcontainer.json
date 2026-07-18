@@ -4,9 +4,12 @@
     "dockerfile": "Dockerfile"
   },
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    }
   },
-  "postCreateCommand": "uv sync --extra dev",
+  "postCreateCommand": "uv sync --extra dev && corepack enable && pnpm install --frozen-lockfile",
   "containerEnv": {
     "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
   },
@@ -19,7 +22,8 @@
         "ms-python.python",
         "charliermarsh.ruff",
         "ms-python.mypy-type-checker",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "dbaeumer.vscode-eslint"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",
