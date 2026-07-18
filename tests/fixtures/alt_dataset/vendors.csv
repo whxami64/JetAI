@@ -1,0 +1,6 @@
+vendor_id,vendor_name,vat_number,city,country,vendor_group
+V9000,Northwind Supplies Ltd,GB123456789,London,GBR,TRADE
+V9001,Acme Consulting Ltd,GB987654321,London,GBR,SERVICES
+V9002,Baltic Steel OU,EE102030405,Tallinn,EST,TRADE
+V9003,Iberia Packaging SA,ES445566778,Madrid,ESP,TRADE
+V9004,Rhine Chemicals GmbH,DE112233445,Cologne,DEU,TRADE

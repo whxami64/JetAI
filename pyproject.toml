@@ -18,7 +18,10 @@ dependencies = [
     "python-docx>=1.1",     # .docx working papers
     "pypdf>=4.2",           # .pdf statements
     # Agent / LLM
-    "anthropic>=0.40",
+    "duckdb>=1.5",
+    "langchain>=1.0",
+    "langgraph>=1.2",
+    "langchain-openai>=1.3",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "python-dotenv>=1.0",
@@ -69,7 +72,10 @@ extend-immutable-calls = ["typer.Argument", "typer.Option"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not integration'"
+markers = [
+    "integration: hits the OpenAI API; run explicitly with -m integration",
+]
 
 [tool.mypy]
 python_version = "3.12"

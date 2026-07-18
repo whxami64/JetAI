@@ -1,37 +1,36 @@
 # jetai CLI
 
-## Setup
-
 ```bash
-uv sync
-source .venv/bin/activate
+uv sync && source .venv/bin/activate
+cp .env.example .env   # set OPENAI_API_KEY
 ```
 
-## `jetai inventory [PATH]`
-
-Lists the source documents found under a dataset, grouped by kind (GDPdU
-ledgers / tables / documents). `PATH` defaults to `data`.
+## Commands
 
 ```bash
-jetai inventory data
+jetai inventory [PATH]        # list source documents, grouped by kind (default PATH: data)
+jetai preprocess [PATH]       # GDPdU txt -> csv (header from index.xml), xlsx/xls -> csv,
+                              # docx/pdf -> md; originals archived to stale/; idempotent
+jetai audit [PATH]            # full supervisor run: preprocess check, profile, context,
+                              # build, checks, verify; prints report + runs/<ts>/ path
+jetai profile [PATH] [--run DIR]   # survey every file + LLM annotations -> profile.json
+jetai context [PATH] [--run DIR]   # thresholds/rules from working papers -> audit_context.json
+jetai build-db [PATH] [--run DIR]  # canonical DuckDB views -> audit.duckdb + build_report.json
+jetai check <name>|--all [--run DIR]  # three_way_match | cutoff | account_classification
+                                      # | split_payments | four_eyes -> findings/<name>.json
+jetai verify [--run DIR]      # verifier agent -> report.json + report.md
+jetai eval [--run DIR] [--truth FILE]  # score report vs eval/ground_truth.json
+jetai trace [--run DIR] [--full]       # per-agent LLM/tool/token summary of traces.jsonl
 ```
 
-## `jetai preprocess [PATH]`
+`--run` defaults to the latest directory under `runs/`; stages read the earlier
+stages' artifacts from it, so one stage can be iterated without rerunning the rest.
 
-Converts source documents into greppable text and archives the originals:
+## Traces
 
-- `.xlsx` / `.xls` → `;`-separated `.csv` (one file per sheet; multi-sheet
-  workbooks are named `<stem>__<SheetName>.csv`)
-- `.docx` / `.pdf` → `.md`
-- Converted originals are moved to `<dataset root>/stale/<relative path>`
+Each run's `traces.jsonl` has one JSON line per LLM/tool event with an `agent` field:
 
 ```bash
-jetai preprocess data
+jq -r 'select(.event=="tool_start") | "\(.agent) \(.tool) \(.input)"' runs/*/traces.jsonl
+jq 'select(.event=="llm_end") | .usage' runs/*/traces.jsonl
 ```
-
-Safe to re-run: files already under `stale/` are excluded from the scan, so a
-second run finds nothing left to convert.
-
-PDF text is extracted with `pdfplumber` rather than markitdown's default pdf
-backend, which scrambles label/value table layouts (e.g. financial
-statements) into separate label and value blocks.

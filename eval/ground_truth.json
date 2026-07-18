@@ -1,0 +1,50 @@
+{
+  "expected": [
+    {
+      "id": "F1",
+      "title": "Shell vendor paid with no goods receipts, created and paid by one user",
+      "check_any": ["three_way_match", "four_eyes"],
+      "must_mention_any": ["209101", "Ratio Consulting", "MV-U05"],
+      "core": true
+    },
+    {
+      "id": "F2",
+      "title": "Repair/maintenance bills capitalized as asset additions",
+      "check_any": ["account_classification"],
+      "must_mention_any": [
+        "040000-000191", "040000-000192", "060000-000193",
+        "040000-000194", "060000-000195", "040000-000196",
+        "040000", "060000"
+      ],
+      "core": true
+    },
+    {
+      "id": "F3",
+      "title": "December costs booked in January without year-end accrual",
+      "check_any": ["cutoff"],
+      "must_mention_any": [
+        "209130", "209131", "209132", "209133",
+        "209134", "209135", "209136", "209137",
+        "ER901427", "ER901428", "ER901429", "ER901430",
+        "ER901431", "ER901432", "ER901433", "ER901434"
+      ],
+      "core": true
+    },
+    {
+      "id": "F4",
+      "title": "Same-day payments split under the approval threshold",
+      "check_any": ["split_payments"],
+      "must_mention_any": ["200007", "SAMMEL-200007"],
+      "core": false
+    }
+  ],
+  "decoys": [
+    {"id": "D1", "entities": ["040000-000197", "ER901435"]},
+    {"id": "D2", "entities": ["209110", "209111", "Nord Logistik", "Nordlicht Logistik"]},
+    {"id": "D3", "entities": ["209112", "Vega Werkstoffe GmbH"]},
+    {"id": "D4", "entities": ["440020"]},
+    {"id": "D5", "entities": ["209113", "Muster Beteiligungs"]},
+    {"id": "D6", "entities": ["040000-000005"]},
+    {"id": "D7", "entities": ["AR502040", "SG502041"]}
+  ]
+}
