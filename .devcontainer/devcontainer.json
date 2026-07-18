@@ -1,5 +1,5 @@
 {
-  "name": "journal-audit",
+  "name": "jetai",
   "build": {
     "dockerfile": "Dockerfile"
   },

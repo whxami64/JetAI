@@ -40,7 +40,7 @@ jobs:
         run: uv run mypy
 
       - name: Test (pytest)
-        run: uv run pytest --cov=journal_audit --cov-report=term-missing
+        run: uv run pytest --cov=jetai --cov-report=term-missing
 
       - name: Build package
         run: uv build

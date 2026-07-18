@@ -36,14 +36,14 @@ dev = [
 ]
 
 [project.scripts]
-journal-audit = "journal_audit.cli:app"
+jetai = "jetai.cli:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/journal_audit"]
+packages = ["src/jetai"]
 
 [tool.uv]
 package = true
@@ -69,7 +69,7 @@ addopts = "-ra"
 
 [tool.mypy]
 python_version = "3.11"
-packages = ["journal_audit"]
+packages = ["jetai"]
 strict = true
 warn_unused_ignores = true
 

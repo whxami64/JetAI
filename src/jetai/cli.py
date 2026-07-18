@@ -8,8 +8,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from journal_audit import __version__
-from journal_audit.dataset import build_inventory, find_dataset_root
+from jetai import __version__
+from jetai.dataset import build_inventory, find_dataset_root
 
 app = typer.Typer(help="Journal entry testing (JET) audit agent.", no_args_is_help=True)
 console = Console()
@@ -18,7 +18,7 @@ console = Console()
 @app.command()
 def version() -> None:
     """Print the installed version."""
-    console.print(f"journal-audit {__version__}")
+    console.print(f"jetai {__version__}")
 
 
 @app.command()

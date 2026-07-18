@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from journal_audit.dataset import build_inventory, find_dataset_root
+from jetai.dataset import build_inventory, find_dataset_root
 
 
 @pytest.fixture
