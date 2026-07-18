@@ -144,6 +144,13 @@ Extend `src/jetai/preprocess.py` — mechanical, standard-driven, generic:
 
 No `dataset.py` changes needed (`_has_ledger` scans ignore `stale/` already).
 
+Note on formats: `_convert_spreadsheet` keeps emitting pandas' decimal-point
+/ ISO style even though the native files are German-style — that mixture
+across files is fine because it is *consistent per file*, and the profiler's
+format detector (§3.1) runs on the post-conversion files and records each
+file's actual formats for the build agent. Preprocessing itself never
+parses dates or numbers.
+
 ## 2. New package `src/jetai/agents/`
 
 ### `config.py`
@@ -164,8 +171,10 @@ summary table (calls, tokens, tools used) and `--full` to dump the raw lines.
 
 ### `models.py`
 Shared pydantic models (all agents' `response_format`s live here):
-- `FileProfile` (path, kind, rows, columns, header_row, encoding,
-  description, candidate_keys, quality_notes) and `DatasetProfile`
+- `ColumnProfile` (name, inferred_type, date_format, decimal_style, mixed,
+  ambiguity_note) — filled by the deterministic format detector (§3.1)
+- `FileProfile` (path, kind, rows, columns: list[ColumnProfile], header_row,
+  encoding, description, candidate_keys, quality_notes) and `DatasetProfile`
 - `AuditContext` (client, fiscal_year_end, approval_threshold_eur,
   materiality_eur, trivial_threshold_eur, special_rules: list[str],
   source_documents)
@@ -209,6 +218,31 @@ keys and quality notes. Writes `profile.json`. This is what makes every
 downstream prompt schema-agnostic. Satisfies the "short explanation of what
 is found in each file" requirement.
 
+**Deterministic date/number format detection** (new module
+`agents/formats.py`, part of the non-LLM pass): mixed standards are a real
+risk — the native files are German-style (`DD.MM.YYYY`, decimal comma) but
+our own xlsx→csv conversion emits decimal points and ISO timestamps, and a
+foreign dataset may use `MM/DD/YYYY`. So the profiler classifies every
+column's non-null values (cap ~5,000 samples) against a fixed
+regex/strptime candidate set:
+- dates: `%d.%m.%Y`, `%Y-%m-%d`, `%d/%m/%Y`, `%m/%d/%Y` + datetime/time
+  variants
+- numbers: German (`1.234,56` / `1234,56`), English (`1,234.56` /
+  `1234.56`), bare integer
+
+From the per-candidate match counts it derives, per column:
+- `mixed=True` when ≥2 incompatible formats each exceed ~2% of values
+  (a column that genuinely mixes standards);
+- `ambiguous=True` when the data cannot discriminate — all day parts ≤ 12
+  (`d/m` vs `m/d`) or integer-only amounts (decimal style undecidable) —
+  resolved by a documented default (follow the rest of the file's style if
+  unambiguous elsewhere, else flagged for the build agent).
+
+Results land in each `ColumnProfile`; `jetai profile` prints a warning per
+mixed/ambiguous column so format problems surface before any LLM runs.
+Detection deliberately runs on the **post-conversion** files, so the profile
+describes exactly what the build agent will load.
+
 ### 3.2 Audit-context agent (`audit_context.py`)
 Tools: `read_markdown`, `list_sources`. Brief: "find the audit working papers
 and rights/permissions documents in this dataset; extract thresholds,
@@ -218,15 +252,25 @@ working paper there says.
 
 ### 3.3 Build agent (`build.py`)
 Tools: `execute_sql` (read-write on `<run>/audit.duckdb`), `schema`,
-`list_sources`, `read_head`. Brief: profile digest + the canonical schema
-definition + typing rules (`,`→`.` casts, `strptime` for `DD.MM.YYYY`,
-`skip=<header_row>` when loading). The agent loads sources with DuckDB
+`list_sources`, `read_head`. Brief: profile digest **including the detected
+per-file/per-column formats (§3.1) as facts, not guesses** + the canonical
+schema definition + `skip=<header_row>` when loading. The agent must pass
+detected formats explicitly to DuckDB —
+`read_csv(..., dateformat='%d.%m.%Y', decimal_separator=',')` (both native
+`read_csv` parameters) — falling back to explicit `strptime`/`replace`
+casts only for columns flagged `mixed`. The agent loads sources with DuckDB
 `read_csv`, builds typed base tables, then the canonical views. Exact SQL is
 the agent's call — that's what absorbs schema variation.
-`run_build_agent` verifies **deterministically** afterwards (query
-`duckdb_tables()`, row counts > 0 for present views) and writes
+`run_build_agent` verifies **deterministically** afterwards and writes
 `build_report.json`; the supervisor sees verification results, not the
-agent's claims.
+agent's claims:
+- `duckdb_tables()` + row counts > 0 for present views;
+- **cast-residue check**: per typed table, count rows where a cast turned a
+  non-NULL raw value into NULL (unparseable) — any nonzero count is a
+  recorded defect;
+- **date-range check**: date columns must fall within ±1 year of the fiscal
+  year from `audit_context.json` — catches silently *wrong*
+  day/month-swapped parses that cast "successfully".
 
 ### 3.4 Check agents (`checks.py`)
 One generic runner + declarative specs — adding a check is adding a spec:
@@ -338,9 +382,13 @@ pipeline.
 
 - Unit (no LLM, run in CI): GDPdU parsing/conversion round-trip on a tiny
   synthetic `index.xml`+`.txt` fixture (umlauts, mismatched row); header-row
-  detection incl. title-row xlsx; `execute_sql` capping + error passthrough;
-  `JsonlTracer` event writing; evaluation scoring on a fabricated report
-  (catches, decoy accusation, miss).
+  detection incl. title-row xlsx; `tests/test_formats.py` — the format
+  detector on German, English, ISO, genuinely mixed (comma+point), ambiguous
+  `d/m` (all days ≤12), integer-only, and datetime/time-only columns,
+  asserting format string / decimal style / `mixed` / `ambiguous` flags;
+  `execute_sql` capping + error passthrough; `JsonlTracer` event writing;
+  evaluation scoring on a fabricated report (catches, decoy accusation,
+  miss).
 - Integration (`-m integration`, skipif no `OPENAI_API_KEY`):
   - per-agent: profiler describes every file; build produces the canonical
     views with sane row counts (~2.5k `three_way_match` rows); each check on
