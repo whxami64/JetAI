@@ -56,9 +56,7 @@ def test_catch_miss_decoy_and_precision() -> None:
 
 
 def test_merged_check_names_still_match() -> None:
-    report = FinalReport(
-        confirmed=[_confirmed("four_eyes / three_way_match", ["209101"])]
-    )
+    report = FinalReport(confirmed=[_confirmed("four_eyes / three_way_match", ["209101"])])
     card = score_report(report, _TRUTH)
     assert {r.id: r.caught for r in card.expected}["F1"]
 
