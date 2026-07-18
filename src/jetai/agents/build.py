@@ -144,6 +144,14 @@ CANONICAL_SCHEMA: dict[str, tuple[CanonicalColumn, ...]] = {
         CanonicalColumn("service_date", "date"),
         CanonicalColumn("amount", "number"), CanonicalColumn("note", "text"),
     ),
+    "late_customer_invoices": (
+        CanonicalColumn("invoice_number", "text", required=True),
+        CanonicalColumn("customer_id", "text"),
+        CanonicalColumn("customer_name", "text"),
+        CanonicalColumn("invoice_date", "date"),
+        CanonicalColumn("service_date", "date"),
+        CanonicalColumn("amount", "number"), CanonicalColumn("note", "text"),
+    ),
     "next_period_postings": (
         CanonicalColumn("posting_date", "date", required=True),
         CanonicalColumn("document_number", "text"),
@@ -216,6 +224,47 @@ CANONICAL_SCHEMA: dict[str, tuple[CanonicalColumn, ...]] = {
 # fmt: on
 
 
+# Cross-view key links whose match rate is measured after every build. A low
+# rate on populated views signals a semantic mis-mapping that NULL/date checks
+# cannot see (e.g. approval ids landing in the wrong journal column).
+LINK_CHECKS: tuple[tuple[str, str, str, str, str], ...] = (
+    ("approval_log->journal", "approval_log", "entry_id", "journal", "entry_id"),
+    ("goods_receipts->vendor_postings", "goods_receipts", "invoice_number",
+     "vendor_postings", "document_number"),
+    ("goods_issues->sales_invoices", "goods_issues", "invoice_number",
+     "sales_invoices", "invoice_number"),
+    ("three_way_match->dim_vendor", "three_way_match", "vendor_id", "dim_vendor", "vendor_id"),
+    ("vendor_postings->dim_vendor", "vendor_postings", "vendor_id", "dim_vendor", "vendor_id"),
+    ("customer_postings->dim_customer", "customer_postings", "customer_id",
+     "dim_customer", "customer_id"),
+)
+
+
+def measure_link_coverage(db_path: Path) -> dict[str, float]:
+    """Fraction of left-side keys that exist on the right, per cross-view link."""
+    coverage: dict[str, float] = {}
+    with duckdb.connect(str(db_path), read_only=True) as conn:
+        existing = {
+            row[0]
+            for row in conn.execute("SELECT table_name FROM information_schema.tables").fetchall()
+        }
+        for name, left, left_col, right, right_col in LINK_CHECKS:
+            if left not in existing or right not in existing:
+                continue
+            try:
+                row = conn.execute(
+                    f'SELECT count(DISTINCT l."{left_col}") FILTER (WHERE '
+                    f'  l."{left_col}" IN (SELECT "{right_col}" FROM "{right}")'
+                    f') * 1.0 / NULLIF(count(DISTINCT l."{left_col}"), 0) '
+                    f'FROM "{left}" l WHERE l."{left_col}" IS NOT NULL'
+                ).fetchone()
+            except duckdb.Error:
+                continue
+            if row is not None and row[0] is not None:
+                coverage[name] = float(row[0])
+    return coverage
+
+
 def _schema_spec() -> str:
     lines = []
     for view, columns in CANONICAL_SCHEMA.items():
@@ -245,6 +294,9 @@ for the same invoice/vendor. Purely factual: NULL receipt columns simply mean \
 no receipt exists. No judgment here.
 - dim_user comes from a rights/permissions matrix if one exists; map its right \
 columns onto can_post / can_approve / can_run_payments / can_create_vendor.
+- late_vendor_invoices / late_customer_invoices: next-period (post year-end) \
+invoice journals, mapped to whichever side the file concerns — check whether \
+the counterparty column is a vendor or a customer account before choosing.
 
 PROFILE OF THE SOURCE FILES (detected facts, not guesses — trust these formats):
 {digest}
@@ -254,7 +306,11 @@ Fiscal year end: {fiscal_year_end}
 Method:
 1. Load each relevant file with read_csv: pass delim, header=true, \
 skip=<header_row from the profile> (the row index given IS the number of lines \
-to skip before the header), and all_varchar=true. Build raw tables first.
+to skip before the header), and all_varchar=true. Build raw tables first. \
+Every source file is guaranteed UTF-8 after preprocessing — NEVER pass an \
+encoding parameter. Do not rely on auto-sniffing: always pass the profile's \
+delimiter explicitly plus quote='"', and if a file still fails to parse, add \
+strict_mode=false rather than guessing dialects.
 2. Create typed base tables: cast dates with try_strptime(col, '<detected format>') \
 and numbers per the detected decimal style (german: replace('.','') then \
 replace(',','.') then TRY_CAST; english: strip ',' then TRY_CAST). For columns \
@@ -410,6 +466,7 @@ def run_build_agent(
         canonical_views_present=[c.view for c in checks if c.present],
         canonical_views_missing=[c.view for c in checks if not c.present],
         view_checks=checks,
+        link_coverage=measure_link_coverage(db_path),
         mapping=summary.mapping,
         unmapped=summary.unmapped,
         notes=summary.notes,

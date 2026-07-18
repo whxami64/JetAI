@@ -114,18 +114,23 @@ def test_build_produces_three_way_match(build_report: BuildReport, run_dir: Path
         receiptless = conn.execute(
             "SELECT count(*) FROM three_way_match WHERE receipt_count IS NULL"
         ).fetchone()
-    assert rows is not None and 2000 <= rows[0] <= 3200
+    # one row per vendor invoice: ~1.3-1.5k invoices out of ~2.6k postings
+    assert rows is not None and 1000 <= rows[0] <= 3200
     assert receiptless is not None and receiptless[0] > 0
 
 
 def test_checks_verifier_and_eval_scorecard(
     settings: AgentSettings,
+    dataset_root: Path,
+    profile: DatasetProfile,
     build_report: BuildReport,
     audit_ctx: AuditContext,
     run_dir: Path,
 ) -> None:
     for name in sorted(CHECK_SPECS):
-        report = run_check_agent(settings, CHECK_SPECS[name], audit_ctx, run_dir)
+        report = run_check_agent(
+            settings, CHECK_SPECS[name], audit_ctx, run_dir, dataset_root, profile
+        )
         assert report.check == name
     final = run_verifier_agent(settings, audit_ctx, run_dir)
     assert final.confirmed
@@ -210,7 +215,9 @@ def test_alt_dataset_generalization(
     build = run_build_agent(settings, dataset, profile, context, alt_run)
     assert "three_way_match" in build.canonical_views_present
 
-    report = run_check_agent(settings, CHECK_SPECS["three_way_match"], context, alt_run)
+    report = run_check_agent(
+        settings, CHECK_SPECS["three_way_match"], context, alt_run, dataset, profile
+    )
     mentioned = [e for f in report.findings for e in f.primary_entities]
     assert any("V9001" in e or "INV-2025-104" in e for e in mentioned)
 

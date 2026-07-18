@@ -145,6 +145,29 @@ def _archive(path: Path, root: Path) -> Path:
     return path.rename(destination)
 
 
+def _reencode_csvs(root: Path, result: PreprocessResult) -> None:
+    """Re-encode every non-UTF-8 source csv to UTF-8, archiving the original.
+
+    DuckDB's ``read_csv`` cannot read cp1252, so a single legacy-encoded
+    supporting file otherwise sends the build agent into encoding
+    trial-and-error. Content is transcoded byte-for-byte (no reparsing), so
+    structure and quoting stay exactly as exported.
+    """
+    for path in build_inventory(root).tables:
+        if path.suffix.lower() != ".csv":
+            continue
+        raw = path.read_bytes()
+        try:
+            raw.decode("utf-8")
+            continue  # already fine, leave untouched
+        except UnicodeDecodeError:
+            text = raw.decode("cp1252")
+        archived = _archive(path, root)
+        path.write_text(text, encoding="utf-8")
+        result.converted.append(path)
+        result.archived.append(archived)
+
+
 def _convert_gdpdu_exports(root: Path, result: PreprocessResult) -> None:
     """Convert every ``.txt`` ledger described by an ``index.xml`` beneath ``root``.
 
@@ -185,4 +208,5 @@ def preprocess_dataset(root: Path) -> PreprocessResult:
         result.converted.append(convert(path))
         result.archived.append(_archive(path, root))
 
+    _reencode_csvs(root, result)
     return result
