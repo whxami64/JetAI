@@ -113,7 +113,7 @@ def _profile_document(path: Path, root: Path) -> FileProfile:
         rows=0,
         encoding=encoding,
         sample_rows=[[line] for line in text.splitlines()[:_MD_EXCERPT_LINES] if line.strip()][
-            :SAMPLE_ROWS * 2
+            : SAMPLE_ROWS * 2
         ],
     )
 
@@ -125,9 +125,7 @@ def build_deterministic_profile(root: Path) -> DatasetProfile:
     for path in [*inventory.tables, *inventory.ledgers]:
         profile.files.append(_profile_table(path, root))
     markdown_files = sorted(
-        p
-        for p in root.rglob("*.md")
-        if STALE_DIRNAME not in p.relative_to(root).parts[:-1]
+        p for p in root.rglob("*.md") if STALE_DIRNAME not in p.relative_to(root).parts[:-1]
     )
     for path in markdown_files:
         profile.files.append(_profile_document(path, root))
@@ -174,9 +172,7 @@ Use exactly the file paths given. Do not invent files or columns.
 {digest}"""
 
 
-def run_profiling_agent(
-    settings: AgentSettings, root: Path, run_dir: Path
-) -> DatasetProfile:
+def run_profiling_agent(settings: AgentSettings, root: Path, run_dir: Path) -> DatasetProfile:
     """Deterministic survey + one LLM annotation pass; writes ``profile.json``."""
     profile = build_deterministic_profile(root)
     tracer = JsonlTracer(run_dir / "traces.jsonl", agent="profile")
@@ -202,9 +198,7 @@ def run_profiling_agent(
 
 
 def write_profile(profile: DatasetProfile, run_dir: Path) -> None:
-    (run_dir / "profile.json").write_text(
-        profile.model_dump_json(indent=2), encoding="utf-8"
-    )
+    (run_dir / "profile.json").write_text(profile.model_dump_json(indent=2), encoding="utf-8")
 
 
 def load_profile(run_dir: Path) -> DatasetProfile:

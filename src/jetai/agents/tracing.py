@@ -90,9 +90,7 @@ class JsonlTracer(BaseCallbackHandler):
     def on_tool_end(self, output: Any, *, run_id: UUID, **kwargs: Any) -> None:
         self._write("tool_end", {"output": _excerpt(getattr(output, "content", output))})
 
-    def on_tool_error(
-        self, error: BaseException, *, run_id: UUID, **kwargs: Any
-    ) -> None:
+    def on_tool_error(self, error: BaseException, *, run_id: UUID, **kwargs: Any) -> None:
         self._write("tool_error", {"error": _excerpt(error)})
 
 
@@ -109,8 +107,14 @@ def summarize_traces(path: Path) -> list[dict[str, Any]]:
             line = json.loads(raw)
             stats = agents.setdefault(
                 line.get("agent", "?"),
-                {"agent": line.get("agent", "?"), "llm_calls": 0, "tool_calls": 0,
-                 "input_tokens": 0, "output_tokens": 0, "tools": set()},
+                {
+                    "agent": line.get("agent", "?"),
+                    "llm_calls": 0,
+                    "tool_calls": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "tools": set(),
+                },
             )
             event = line.get("event")
             if event == "llm_end":

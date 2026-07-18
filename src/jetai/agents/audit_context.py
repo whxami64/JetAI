@@ -46,9 +46,7 @@ def run_audit_context_agent(
         response_format=AuditContext,
         tracer=tracer,
     )
-    (run_dir / "audit_context.json").write_text(
-        context.model_dump_json(indent=2), encoding="utf-8"
-    )
+    (run_dir / "audit_context.json").write_text(context.model_dump_json(indent=2), encoding="utf-8")
     return context
 
 
