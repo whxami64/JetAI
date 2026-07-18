@@ -5,9 +5,8 @@ https://techeurope.notion.site/berlin-summer-lock-in
 ## Preprocessing
 
 - xlsx2csv und alte löschen
-- .docx und .pdf zu markdown und alte löschen
+- .doxc und .pdf zu markdown und alte löschen
 - Übersicht aller Dokumente
-- Sachkonten zusammenführen
 - Trennzeichen (Komma / Punkt vereinheitlichen)
 - Dokument tree speichern
 
@@ -24,6 +23,10 @@ https://techeurope.notion.site/berlin-summer-lock-in
 
 ## 3-Wege check:
 
+Join agent → joined Daten in Giga Table
+
+check agent → führt 3 Wege Check aus
+
 1. Bestellung (Purchase Order): Was wurde ursprünglich beim Lieferanten in Auftrag gegeben? Geprüft werden hierbei die bestellten Mengen, Preise und Artikelnummern.
 2. Payment: Gab es einen Zahlungseingang für die Rechnung?
 3. Lieferantenrechnung (Invoice): Was fordert der Lieferant für seine Leistung? Geprüft wird die vorliegende Rechnung auf die geforderten Konditionen.
@@ -33,7 +36,13 @@ https://techeurope.notion.site/berlin-summer-lock-in
 
 → F3: “December costs parked in January.** Eight supplier invoices for December 2025 deliveries (**€192,000 net**) are booked in January 2026 and **not accrued** at year-end (goods received in December, no 2025 posting). Profit overstated.”
 
-## Periodengerechte Zuordnung:
+→ F4: split payments
+
+Sachkonten/Sachkontobuchungen.txt: filter payments (BUCHUNGSTYP "Zahlung") and group by vendor + date. Vendor 200007 on 14.10.2025 has 4 payments each just under €10,000 (belegnr "SAMMEL-200007").
+
+Begleitdokumente/Pruefungsplanung_JET_2025.docx: states the €10,000 payment-approval threshold. Several near-threshold payments same day, same payee = threshold-splitting.
+
+## Periodengerechte Zuordnung (Teil von 3 Wege Check?):
 
 Sind Zahlungen und Leistungen im selben Jahr abgerechnet worden (Ware in 2025 geliefert, Umsatz gehört in 2026)
 
@@ -60,13 +69,27 @@ Lieferanten und Kundenrechnungen
 
 ## Verifier
 
-→ 
+→ received issue of subagents with context of subagents
 
 ## Regeln
 
 Mandant: Muster Verpackungen GmbH, Musterhausen
 Abschlussstichtag 31.12.2025
 Referenz IDW PS 210 / ISA [DE] 240.
+
+### **Suggested scoring**
+
+- Top marks: catch
+
+- F1 by combining sources (new vendor + no goods receipt + creator=approver + rights), plus F2/F3 (the profit-overstatement pair).
+
+- Bonus: *F4**
+
+- Penalty: accusing any decoy (D1–D7).
+
+### Note
+
+100% synthetic (seeded generator, no real names/IBANs/tax-IDs). Regenerable and adjustable. The scheme set is deliberately different from the real BSP dataset (this one is purchasing/asset/cut-off/controls), so practising here does not reveal the real answers.
 
 # **Arbeitspapier 4.2 – Journal Entry Testing (JET), Prüfungsplanung**
 

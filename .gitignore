@@ -17,5 +17,8 @@ htmlcov/
 # Secrets / local config
 .env
 
+# Audit run artifacts
+runs/
+
 # OS / editor
 .DS_Store

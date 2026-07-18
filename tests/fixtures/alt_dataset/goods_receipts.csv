@@ -1,0 +1,5 @@
+receipt_no,receipt_date,invoice_no,vendor_id,vendor_name,amount,note
+GR-501,2025-02-07,INV-2025-101,V9000,Northwind Supplies Ltd,12500.50,Full delivery
+GR-502,2025-04-09,INV-2025-102,V9002,Baltic Steel OU,8300.00,Full delivery
+GR-503,2025-06-14,INV-2025-103,V9003,Iberia Packaging SA,15750.25,Full delivery
+GR-504,2025-09-11,INV-2025-105,V9004,Rhine Chemicals GmbH,6420.80,Full delivery

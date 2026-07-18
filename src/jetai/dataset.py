@@ -50,9 +50,14 @@ def _is_ignored(path: Path) -> bool:
 
 
 def _has_ledger(root: Path) -> bool:
-    """Whether any GDPdU ledger export exists anywhere beneath ``root``."""
+    """Whether any ledger-like export exists anywhere beneath ``root``.
+
+    GDPdU exports ship ``.txt`` ledgers; other accounting software exports
+    plain tables — either marks a dataset root.
+    """
+    ingestible = LEDGER_SUFFIXES | TABLE_SUFFIXES
     return any(
-        child.is_file() and child.suffix.lower() in LEDGER_SUFFIXES and not _is_ignored(child)
+        child.is_file() and child.suffix.lower() in ingestible and not _is_ignored(child)
         for child in root.rglob("*")
     )
 
@@ -81,7 +86,7 @@ def find_dataset_root(start: Path) -> Path:
         break
 
     if not _has_ledger(current):
-        raise FileNotFoundError(f"No GDPdU ledger export found under: {start}")
+        raise FileNotFoundError(f"No ledger or table exports found under: {start}")
     return current
 
 
