@@ -52,9 +52,7 @@ def _summary(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, default=str)
 
 
-def build_supervisor_tools(
-    settings: AgentSettings, root: Path, run_dir: Path
-) -> list[Any]:
+def build_supervisor_tools(settings: AgentSettings, root: Path, run_dir: Path) -> list[Any]:
     """The specialists, wrapped as supervisor tools over shared disk state."""
 
     @tool
@@ -65,10 +63,7 @@ def build_supervisor_tools(
         except Exception as error:  # noqa: BLE001 - summarized for the supervisor
             return _summary({"status": "error", "error": str(error)})
         flagged = [
-            f"{f.path}:{c.name}"
-            for f in profile.files
-            for c in f.columns
-            if c.mixed or c.ambiguous
+            f"{f.path}:{c.name}" for f in profile.files for c in f.columns if c.mixed or c.ambiguous
         ]
         return _summary(
             {
@@ -166,9 +161,7 @@ def build_supervisor_tools(
     @tool
     def list_run_artifacts() -> str:
         """List the artifacts currently present in the run directory."""
-        artifacts = sorted(
-            str(p.relative_to(run_dir)) for p in run_dir.rglob("*") if p.is_file()
-        )
+        artifacts = sorted(str(p.relative_to(run_dir)) for p in run_dir.rglob("*") if p.is_file())
         return _summary({"artifacts": artifacts})
 
     return [

@@ -310,23 +310,18 @@ def verify_build(db_path: Path, context: AuditContext) -> list[ViewCheck]:
     with duckdb.connect(str(db_path), read_only=True) as conn:
         existing = {
             row[0]
-            for row in conn.execute(
-                "SELECT table_name FROM information_schema.tables"
-            ).fetchall()
+            for row in conn.execute("SELECT table_name FROM information_schema.tables").fetchall()
         }
         for view, columns in CANONICAL_SCHEMA.items():
             if view not in existing:
                 checks.append(ViewCheck(view=view, present=False))
                 continue
             check = ViewCheck(view=view, present=True)
-            check.row_count = conn.execute(
-                f'SELECT count(*) FROM "{view}"'
-            ).fetchone()[0]  # type: ignore[index]
+            check.row_count = conn.execute(f'SELECT count(*) FROM "{view}"').fetchone()[0]  # type: ignore[index]
             actual = {
                 row[0]
                 for row in conn.execute(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name = ?",
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = ?",
                     [view],
                 ).fetchall()
             }
@@ -404,9 +399,7 @@ def run_build_agent(
         unmapped=summary.unmapped,
         notes=summary.notes,
     )
-    (run_dir / "build_report.json").write_text(
-        report.model_dump_json(indent=2), encoding="utf-8"
-    )
+    (run_dir / "build_report.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
     return report
 
 

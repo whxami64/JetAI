@@ -100,8 +100,7 @@ def make_list_sources_tool(profile: DatasetProfile) -> BaseTool:
     def list_sources() -> str:
         """List every source file in the dataset: path, rows, one-line description."""
         lines = [
-            f"{f.path} [{f.kind}, {f.rows} rows] {f.description}".strip()
-            for f in profile.files
+            f"{f.path} [{f.kind}, {f.rows} rows] {f.description}".strip() for f in profile.files
         ]
         return "\n".join(lines) or "(no files profiled)"
 

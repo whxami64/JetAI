@@ -176,12 +176,8 @@ def test_verifier_keeps_true_and_drops_unsupported(
     )
 
     final = run_verifier_agent(settings, audit_ctx, planted_dir)
-    confirmed_entities = [
-        e for item in final.confirmed for e in item.finding.primary_entities
-    ]
-    rejected_entities = [
-        e for item in final.rejected for e in item.finding.primary_entities
-    ]
+    confirmed_entities = [e for item in final.confirmed for e in item.finding.primary_entities]
+    rejected_entities = [e for item in final.rejected for e in item.finding.primary_entities]
     assert any("209101" in e for e in confirmed_entities)
     assert any("209112" in e for e in rejected_entities)
     assert not any("209112" in e for e in confirmed_entities)
@@ -207,9 +203,7 @@ def test_alt_dataset_generalization(
     context = AuditContext(
         client="Alt Co", fiscal_year_end="2025-12-31", trivial_threshold_eur=1000
     )
-    (alt_run / "audit_context.json").write_text(
-        context.model_dump_json(indent=2), encoding="utf-8"
-    )
+    (alt_run / "audit_context.json").write_text(context.model_dump_json(indent=2), encoding="utf-8")
     build = run_build_agent(settings, dataset, profile, context, alt_run)
     assert "three_way_match" in build.canonical_views_present
 
