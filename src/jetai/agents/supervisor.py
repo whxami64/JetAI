@@ -202,7 +202,7 @@ def run_supervisor(settings: AgentSettings, root: Path, run_dir: Path) -> str:
         config={
             "callbacks": [tracer],
             "run_name": "supervisor",
-            "recursion_limit": _SUPERVISOR_RECURSION_LIMIT,
+            "recursion_limit": max(_SUPERVISOR_RECURSION_LIMIT, settings.recursion_limit),
         },
     )
     final = state["messages"][-1]

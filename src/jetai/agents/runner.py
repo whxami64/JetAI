@@ -15,8 +15,6 @@ from jetai.agents.tracing import JsonlTracer
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
-DEFAULT_RECURSION_LIMIT = 40
-
 
 def chat_model(settings: AgentSettings) -> ChatOpenAI:
     """The suite's chat model; one place to change provider parameters.
@@ -39,7 +37,7 @@ def run_structured_agent(
     tools: list[BaseTool],
     response_format: type[ResponseT],
     tracer: JsonlTracer,
-    recursion_limit: int = DEFAULT_RECURSION_LIMIT,
+    recursion_limit: int | None = None,
 ) -> ResponseT:
     """Run one ``create_agent`` specialist on a fresh, self-contained brief.
 
@@ -58,7 +56,7 @@ def run_structured_agent(
         config={
             "callbacks": [tracer],
             "run_name": name,
-            "recursion_limit": recursion_limit,
+            "recursion_limit": recursion_limit or settings.recursion_limit,
         },
     )
     structured = state.get("structured_response")
