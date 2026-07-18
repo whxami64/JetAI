@@ -9,6 +9,7 @@ import docx
 import openpyxl
 import pandas as pd
 import pytest
+import xlwt
 
 from jetai.dataset import build_inventory
 from jetai.preprocess import preprocess_dataset
@@ -38,6 +39,14 @@ def sample_dataset(tmp_path: Path) -> Path:
     multi_sheet.create_sheet("Sheet B").append(["y"])
     multi_sheet.save(root / "Begleitdokumente" / "OP-Liste_2025.xlsx")
 
+    legacy_workbook = xlwt.Workbook()
+    legacy_sheet = legacy_workbook.add_sheet("Sheet1")
+    legacy_sheet.write(0, 0, "Konto")
+    legacy_sheet.write(0, 1, "Saldo")
+    legacy_sheet.write(1, 0, "200000")
+    legacy_sheet.write(1, 1, "9.876,50")
+    legacy_workbook.save(str(root / "Begleitdokumente" / "Saldenliste_2024.xls"))
+
     paper = docx.Document()
     paper.add_heading("Pruefungsplanung", level=1)
     paper.add_paragraph("Wesentlichkeit 400.000 EUR.")
@@ -64,6 +73,16 @@ def test_preprocess_splits_multi_sheet_xlsx(sample_dataset: Path) -> None:
     names = {p.name for p in result.converted}
     assert "OP-Liste_2025__Sheet_A.csv" in names
     assert "OP-Liste_2025__Sheet_B.csv" in names
+
+
+def test_preprocess_converts_legacy_xls_to_csv(sample_dataset: Path) -> None:
+    result = preprocess_dataset(sample_dataset)
+
+    out = sample_dataset / "Begleitdokumente" / "Saldenliste_2024.csv"
+    assert out in result.converted
+    frame = pd.read_csv(out, sep=";")
+    assert list(frame.columns) == ["Konto", "Saldo"]
+    assert not (sample_dataset / "Begleitdokumente" / "Saldenliste_2024.xls").exists()
 
 
 def test_preprocess_converts_docx_to_markdown(sample_dataset: Path) -> None:
@@ -105,5 +124,5 @@ def test_stale_directory_excluded_from_inventory(sample_dataset: Path) -> None:
     preprocess_dataset(sample_dataset)
     inventory = build_inventory(sample_dataset)
 
-    assert not any(p.suffix.lower() == ".xlsx" for p in inventory.tables)
+    assert not any(p.suffix.lower() in {".xlsx", ".xls"} for p in inventory.tables)
     assert not any(p.suffix.lower() in {".docx", ".pdf"} for p in inventory.documents)

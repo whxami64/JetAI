@@ -20,8 +20,8 @@ jetai inventory data
 
 Converts source documents into greppable text and archives the originals:
 
-- `.xlsx` → `;`-separated `.csv` (one file per sheet; multi-sheet workbooks
-  are named `<stem>__<SheetName>.csv`)
+- `.xlsx` / `.xls` → `;`-separated `.csv` (one file per sheet; multi-sheet
+  workbooks are named `<stem>__<SheetName>.csv`)
 - `.docx` / `.pdf` → `.md`
 - Converted originals are moved to `<dataset root>/stale/<relative path>`
 

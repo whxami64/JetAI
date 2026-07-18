@@ -1,7 +1,7 @@
 """Convert audit source documents into greppable text.
 
-Every ``.xlsx`` workbook becomes one or more ``;``-separated ``.csv`` files
-(one per sheet) and every ``.docx``/``.pdf`` becomes a single ``.md`` file.
+Every ``.xlsx``/``.xls`` workbook becomes one or more ``;``-separated ``.csv``
+files (one per sheet) and every ``.docx``/``.pdf`` becomes a single ``.md`` file.
 Converted originals are relocated to ``<dataset root>/stale/<relative path>``
 so the dataset only holds greppable text once preprocessing has run.
 
@@ -27,6 +27,7 @@ from markitdown import MarkItDown
 from jetai.dataset import STALE_DIRNAME, build_inventory
 
 _SHEET_NAME_RE = re.compile(r"[^\w\-]+")
+_SPREADSHEET_SUFFIXES = frozenset({".xlsx", ".xls"})
 
 _markitdown = MarkItDown()
 
@@ -39,8 +40,8 @@ class PreprocessResult:
     archived: list[Path] = field(default_factory=list)
 
 
-def _convert_xlsx(path: Path) -> list[Path]:
-    """Write each sheet of ``path`` to its own ``;``-separated csv."""
+def _convert_spreadsheet(path: Path) -> list[Path]:
+    """Write each sheet of ``path`` (``.xlsx`` or ``.xls``) to its own ``;``-separated csv."""
     sheets = pd.read_excel(path, sheet_name=None)
     if len(sheets) == 1:
         (frame,) = sheets.values()
@@ -85,15 +86,15 @@ def _archive(path: Path, root: Path) -> Path:
 
 
 def preprocess_dataset(root: Path) -> PreprocessResult:
-    """Convert every xlsx/docx/pdf under ``root`` and archive the originals."""
+    """Convert every xlsx/xls/docx/pdf under ``root`` and archive the originals."""
     root = root.expanduser().resolve()
     inventory = build_inventory(root)
     result = PreprocessResult()
 
     for path in inventory.tables:
-        if path.suffix.lower() != ".xlsx":
+        if path.suffix.lower() not in _SPREADSHEET_SUFFIXES:
             continue
-        result.converted.extend(_convert_xlsx(path))
+        result.converted.extend(_convert_spreadsheet(path))
         result.archived.append(_archive(path, root))
 
     for path in inventory.documents:

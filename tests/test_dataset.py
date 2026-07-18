@@ -22,6 +22,7 @@ def sample_dataset(tmp_path: Path) -> Path:
     csv = root / "Begleitdokumente" / "Stammdatenaenderungen_2025.csv"
     csv.write_text("a;b", encoding="utf-8")
     (root / "Begleitdokumente" / "Saldenliste_2025.xlsx").write_bytes(b"PK")
+    (root / "Begleitdokumente" / "Saldenliste_2024.xls").write_bytes(b"\xd0\xcf\x11\xe0")
     (root / "Begleitdokumente" / "Pruefungsplanung_JET_2025.docx").write_bytes(b"PK")
     (root / "Begleitdokumente" / "JA-Entwurf_2025.pdf").write_bytes(b"%PDF")
     # Noise that must be ignored.
@@ -49,6 +50,7 @@ def test_build_inventory_groups_by_kind(sample_dataset: Path) -> None:
     inventory = build_inventory(find_dataset_root(sample_dataset))
     assert [p.name for p in inventory.ledgers] == ["Sachkontobuchungen.txt"]
     assert sorted(p.name for p in inventory.tables) == [
+        "Saldenliste_2024.xls",
         "Saldenliste_2025.xlsx",
         "Stammdatenaenderungen_2025.csv",
     ]

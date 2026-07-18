@@ -2,7 +2,7 @@
 
 A dataset is a directory tree of GDPdU exports (``.txt`` ledgers with their
 ``index.xml`` / ``.dtd`` descriptors) alongside supporting workbooks, working
-papers and statements (``.csv`` / ``.xlsx`` / ``.docx`` / ``.pdf``). These
+papers and statements (``.csv`` / ``.xlsx`` / ``.xls`` / ``.docx`` / ``.pdf``). These
 helpers locate that tree and group the files by kind so the rest of the agent
 can plan which reader to apply to each document.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 
 # Extensions the agent knows how to ingest, grouped by the reader they need.
 LEDGER_SUFFIXES = frozenset({".txt"})
-TABLE_SUFFIXES = frozenset({".csv", ".xlsx"})
+TABLE_SUFFIXES = frozenset({".csv", ".xlsx", ".xls"})
 DOCUMENT_SUFFIXES = frozenset({".docx", ".pdf"})
 
 # Descriptor and OS artefacts that are not audit content.
