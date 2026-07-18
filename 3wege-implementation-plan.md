@@ -19,22 +19,24 @@ Decisions made with the user before this plan:
   it and reports findings via a structured tool call.
 - Also build the broader normalized journal union (all four sub-ledgers in one
   common-schema table), not just the narrow reconciliation table — useful for
-  the other checks in `approach.md` later.
+  the other checks in `approach.md` later. USER: also join in additional information like Kunden.txt, Lieferanten.txt Sachkonten.txt and other information that could be joined in (please investigate this and give us a proposition)
 - Orchestration via **LangGraph** (`langgraph.prebuilt.create_react_agent`),
   even though today's pipeline is linear — chosen for consistency with the
   rest of the planned audit-agent suite.
+- USER: Add langgraph native observability so that we check inputs and outputs and can debug the agents and look at the traces
 - Models are **OpenAI** (not Anthropic, despite the `anthropic` package
   already in `pyproject.toml` — that dependency is unused today and is left
-  alone). Default model: `gpt-5`, configurable via `.env`.
+  alone USER: okay delete it). Default model: `gpt-5`, configurable via `.env`.
 - Guardrail: the check agent's logic must be generic ("any invoice with a
   payment but no matching goods receipt"), never hardcoded to vendor 209101 or
   other `solution.md` specifics — otherwise it's replaying the answer key, not
   detecting fraud, and the dataset is explicitly documented as regenerable.
 
 ## Architecture
+USER: Add an orchestrator here
 
 ```
-jetai preprocess data        (extended, deterministic)
+jetai preprocess data        (extended, deterministic) # USER: preprocess agent should give a short explanation of what is found in each file.
         │
         ▼
 jetai join data               ── Join Agent (LangGraph ReAct, OpenAI + execute_sql tool)
@@ -48,6 +50,8 @@ jetai check-3way               ── Check Agent (LangGraph ReAct, OpenAI + exe
 jetai three-way-check data    convenience wrapper: join, then check
 ```
 
+
+
 ## 1. Deterministic preprocessing extension (not an agent)
 
 The GDPdU ledger `.txt` files (`Sachkonten/*.txt`, `Kreditoren/*.txt`,
@@ -57,6 +61,7 @@ Column names live in each directory's sibling `index.xml`
 This is 100% mechanical — no agent judgment needed — so it belongs in
 `preprocess.py`, matching `approach.md`'s own preprocessing checklist item
 ("Trennzeichen vereinheitlichen").
+# USER: actually the column names may change and also the number of columns are not fixed, so please instruct the agent here to make this work. Also even the file names might differ
 
 Add to `src/jetai/preprocess.py`:
 - `_parse_ledger_columns(index_xml: Path, table_url: str) -> list[str]` — parse
@@ -83,19 +88,20 @@ No changes needed to `dataset.py`: `_has_ledger` already scans unfiltered by
   table alone is 20k rows; the agent must aggregate, not dump raw rows).
   Catches `duckdb.Error` and returns the message as text so the agent can
   self-correct instead of crashing the loop.
+  # USER: we already have some tools stored in tools.md, the file should be moved there and the new tools should be mentioned there. The file should be made more minimal less bloated.
 - `make_list_source_files_tool(dataset_root: Path) -> BaseTool` — thin wrapper
   over the existing `jetai.dataset.build_inventory`, returns relative paths
   grouped by kind. No args (root is bound via closure), so the agent can
   discover what's available after preprocessing without the file layout being
-  hardcoded into the prompt.
+  hardcoded into the prompt. # USER: Here i think we need a short explanation for every file so that downstream agents know whats in there without loading it into context.
 
 ### `agents/config.py`
 - `AgentSettings(BaseSettings)` (pydantic-settings, `env_file=".env"`):
-  `openai_api_key: str`, `openai_model: str = "gpt-5"`. First real use of the
+  `openai_api_key: str`, `openai_model: str = "gpt-5.6-sol"`. First real use of the
   `pydantic-settings`/`python-dotenv` deps that are already declared but
   unused.
 - Update `.env.example` to add `OPENAI_API_KEY=` and
-  `# OPENAI_MODEL=gpt-5` alongside the existing (unused) Anthropic entries —
+  `# OPENAI_MODEL=gpt-5.6-sol` alongside the existing (unused) Anthropic entries —
   leave those as-is, out of scope to remove.
 
 ### `agents/join_agent.py`
@@ -116,7 +122,7 @@ is the agent's call, not hardcoded by us):
   `asset_postings`, `goods_receipts`, `goods_issues`, `sales_invoices`,
   `late_vendor_invoices` (the Jan-2026 cutoff file), `master_data_changes`,
   `approval_log` — each with `,`→`.` amount casts and `strptime` date parsing
-  applied.
+  applied. 
 - **`journal`** — `UNION ALL` of `vendor_postings`/`customer_postings`/
   `gl_postings`/`asset_postings` mapped to a common schema
   (`source_ledger, account, counter_account, posting_date, document_date,
@@ -127,7 +133,7 @@ is the agent's call, not hardcoded by us):
   count, last date) and LEFT JOIN `goods_receipts`. Purely factual (amounts,
   dates, presence via NULL) — no "is this suspicious" judgment here, that's
   the check agent's job, keeping the join/check split clean per the user's
-  original framing.
+# USER: col names might change across datasets, so this needs to work for different tables. THe agents needs to check the columns first, but make sure to not bloat content (so head instead of loading full files.).  original framing.
 
 ### `agents/check_agent.py`
 - `Finding(BaseModel)`: `invoice_number`, `vendor_account`, `vendor_name`,
